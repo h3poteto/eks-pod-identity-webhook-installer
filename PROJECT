@@ -1,0 +1,6 @@
+domain: h3poteto.dev
+layout:
+- go.kubebuilder.io/v3
+projectName: eks-pod-identity-webhook-installer
+repo: github.com/h3poteto/eks-pod-identity-webhook-installer
+version: "3"
