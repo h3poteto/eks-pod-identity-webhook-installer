@@ -14,7 +14,7 @@ spec:
     listKind: EKSPodIdentityWebhookList
     plural: ekspodidentitywebhooks
     singular: ekspodidentitywebhook
-  scope: Namespaced
+  scope: Cluster
   versions:
   - additionalPrinterColumns:
     - jsonPath: .status.phase
@@ -62,11 +62,8 @@ spec:
                 properties:
                   name:
                     type: string
-                  namespace:
-                    type: string
                 required:
                 - name
-                - namespace
                 type: object
               podIdentityWebhookDaemonset:
                 nullable: true
@@ -91,6 +88,17 @@ spec:
                 - namespace
                 type: object
               podIdentityWebhookService:
+                nullable: true
+                properties:
+                  name:
+                    type: string
+                  namespace:
+                    type: string
+                required:
+                - name
+                - namespace
+                type: object
+              podIdentityWebhookServiceAccount:
                 nullable: true
                 properties:
                   name:
