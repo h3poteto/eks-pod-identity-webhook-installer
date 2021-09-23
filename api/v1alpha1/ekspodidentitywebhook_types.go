@@ -26,6 +26,8 @@ type EKSPodIdentityWebhookStatus struct {
 	PodIdentityWebhookDaemonset *DaemonsetRef `json:"podIdentityWebhookDaemonset,omitempty"`
 	// +nullable
 	PodIdentityWebhookConfiguration *MutatingWebhookConfigurationRef `json:"podIdentityWebhookConfiguration,omitempty"`
+	// +nullable
+	PodIdentityWebhookServiceAccount *ServiceAccountRef `json:"podIdentityWebhookServiceAccount,omitempty"`
 	// +kubebuilder:default=init
 	Phase string `json:"phase"`
 }
@@ -33,7 +35,12 @@ type EKSPodIdentityWebhookStatus struct {
 type SecretRef Ref
 type ServiceRef Ref
 type DaemonsetRef Ref
-type MutatingWebhookConfigurationRef Ref
+type ServiceAccountRef Ref
+type MutatingWebhookConfigurationRef struct {
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Type=string
+	Name string `json:"name"`
+}
 
 type Ref struct {
 	// +kubebuilder:validation:Required
@@ -45,8 +52,9 @@ type Ref struct {
 }
 
 //+kubebuilder:object:root=true
+//+kubebuilder:resource:scope=Cluster
 //+kubebuilder:subresource:status
-// +kubebuilder:printcolumn:name="Phase",type=string,JSONPath=`.status.phase`
+//+kubebuilder:printcolumn:name="Phase",type=string,JSONPath=`.status.phase`
 
 // EKSPodIdentityWebhook is the Schema for the ekspodidentitywebhooks API
 type EKSPodIdentityWebhook struct {
