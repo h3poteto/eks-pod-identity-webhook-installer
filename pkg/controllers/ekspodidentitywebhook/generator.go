@@ -1,6 +1,6 @@
 // Refs: https://github.com/aws/amazon-eks-pod-identity-webhook/tree/master/deploy
 
-package controllers
+package ekspodidentitywebhook
 
 import (
 	installerv1alpha1 "github.com/h3poteto/eks-pod-identity-webhook-installer/api/v1alpha1"

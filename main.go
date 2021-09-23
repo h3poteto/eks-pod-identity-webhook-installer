@@ -32,7 +32,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	installerv1alpha1 "github.com/h3poteto/eks-pod-identity-webhook-installer/api/v1alpha1"
-	"github.com/h3poteto/eks-pod-identity-webhook-installer/pkg/controllers"
+	"github.com/h3poteto/eks-pod-identity-webhook-installer/pkg/controllers/ekspodidentitywebhook"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -78,7 +78,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&controllers.EKSPodIdentityWebhookReconciler{
+	if err = (&ekspodidentitywebhook.EKSPodIdentityWebhookReconciler{
 		Client:   mgr.GetClient(),
 		Scheme:   mgr.GetScheme(),
 		Logger:   ctrl.Log.WithName("controllers").WithName("EKSPodIdentityWebhook"),
