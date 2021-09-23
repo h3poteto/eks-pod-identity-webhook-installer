@@ -1,0 +1,7 @@
+apiVersion: installer.h3poteto.dev/v1alpha1
+kind: EKSPodIdentityWebhook
+metadata:
+  name: ekspodidentitywebhook-sample
+spec:
+  issuerHost: "hogehoge.com"
+  namespace: "default"

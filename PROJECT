@@ -3,4 +3,14 @@ layout:
 - go.kubebuilder.io/v3
 projectName: eks-pod-identity-webhook-installer
 repo: github.com/h3poteto/eks-pod-identity-webhook-installer
+resources:
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: h3poteto.dev
+  group: installer
+  kind: EKSPodIdentityWebhook
+  path: github.com/h3poteto/eks-pod-identity-webhook-installer/api/v1alpha1
+  version: v1alpha1
 version: "3"

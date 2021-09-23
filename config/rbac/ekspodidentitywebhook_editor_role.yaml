@@ -1,0 +1,24 @@
+# permissions for end users to edit ekspodidentitywebhooks.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: ekspodidentitywebhook-editor-role
+rules:
+- apiGroups:
+  - installer.h3poteto.dev
+  resources:
+  - ekspodidentitywebhooks
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - installer.h3poteto.dev
+  resources:
+  - ekspodidentitywebhooks/status
+  verbs:
+  - get

@@ -1,0 +1,20 @@
+# permissions for end users to view ekspodidentitywebhooks.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: ekspodidentitywebhook-viewer-role
+rules:
+- apiGroups:
+  - installer.h3poteto.dev
+  resources:
+  - ekspodidentitywebhooks
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - installer.h3poteto.dev
+  resources:
+  - ekspodidentitywebhooks/status
+  verbs:
+  - get
