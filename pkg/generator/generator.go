@@ -291,6 +291,7 @@ func GenerateDaemonset(resource *installerv1alpha1.EKSPodIdentityWebhook) *appsv
 								"--annotation-prefix=eks.amazonaws.com",
 								"--token-audience=" + resource.Spec.IssuerHost,
 								"--logtostderr",
+								"--v=4",
 							},
 							VolumeMounts: []corev1.VolumeMount{
 								{
