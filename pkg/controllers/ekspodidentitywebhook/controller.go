@@ -35,6 +35,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	installerv1alpha1 "github.com/h3poteto/eks-pod-identity-webhook-installer/api/v1alpha1"
+	"github.com/h3poteto/eks-pod-identity-webhook-installer/pkg/generator"
 )
 
 // EKSPodIdentityWebhookReconciler reconciles a EKSPodIdentityWebhook object
@@ -49,15 +50,6 @@ type EKSPodIdentityWebhookReconciler struct {
 //+kubebuilder:rbac:groups=installer.h3poteto.dev,resources=ekspodidentitywebhooks/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=installer.h3poteto.dev,resources=ekspodidentitywebhooks/finalizers,verbs=update
 
-// Reconcile is part of the main kubernetes reconciliation loop which aims to
-// move the current state of the cluster closer to the desired state.
-// TODO(user): Modify the Reconcile function to compare the state specified by
-// the EKSPodIdentityWebhook object against the actual cluster state, and then
-// perform operations to make the cluster state reflect the state specified by
-// the user.
-//
-// For more details, check Reconcile and its Result here:
-// - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.8.3/pkg/reconcile
 func (r *EKSPodIdentityWebhookReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = r.Logger.WithValues("EKSPodIdentityWebhook", req.NamespacedName)
 	_ = log.FromContext(ctx)
@@ -86,6 +78,8 @@ func (r *EKSPodIdentityWebhookReconciler) SetupWithManager(mgr ctrl.Manager) err
 
 func (r *EKSPodIdentityWebhookReconciler) syncEKSPodIdentityWebhook(ctx context.Context, resource *installerv1alpha1.EKSPodIdentityWebhook) error {
 	r.Logger.Info("Syncing", "Namespace", resource.Namespace, "Name", resource.Name)
+
+	generator.Namespace = resource.Spec.Namespace
 
 	newResource := resource.DeepCopy()
 
@@ -192,7 +186,7 @@ func (r *EKSPodIdentityWebhookReconciler) syncEKSPodIdentityWebhook(ctx context.
 }
 
 func (r *EKSPodIdentityWebhookReconciler) createServiceAccount(ctx context.Context, resource *installerv1alpha1.EKSPodIdentityWebhook) (*corev1.ServiceAccount, error) {
-	serviceAccount := generateServiceAccount(resource, resource.Spec.Namespace)
+	serviceAccount := generator.GenerateServiceAccount(resource)
 
 	{
 		exists := corev1.ServiceAccount{}
@@ -213,7 +207,7 @@ func (r *EKSPodIdentityWebhookReconciler) createServiceAccount(ctx context.Conte
 		}
 	}
 
-	role := generateRole(resource, resource.Spec.Namespace)
+	role := generator.GenerateRole(resource)
 	{
 		exists := rbacv1.Role{}
 		err := r.Client.Get(ctx, types.NamespacedName{Namespace: role.Namespace, Name: role.Name}, &exists)
@@ -234,7 +228,7 @@ func (r *EKSPodIdentityWebhookReconciler) createServiceAccount(ctx context.Conte
 		}
 	}
 
-	roleBinding := generateRoleBinding(resource, resource.Spec.Namespace, role, serviceAccount)
+	roleBinding := generator.GenerateRoleBinding(resource, role, serviceAccount)
 	{
 		exists := rbacv1.RoleBinding{}
 		err := r.Client.Get(ctx, types.NamespacedName{Namespace: roleBinding.Namespace, Name: roleBinding.Name}, &exists)
@@ -257,7 +251,7 @@ func (r *EKSPodIdentityWebhookReconciler) createServiceAccount(ctx context.Conte
 
 	}
 
-	clusterRole := generateClusterRole(resource)
+	clusterRole := generator.GenerateClusterRole(resource)
 	{
 		exists := rbacv1.ClusterRole{}
 		err := r.Client.Get(ctx, types.NamespacedName{Name: clusterRole.Name}, &exists)
@@ -279,7 +273,7 @@ func (r *EKSPodIdentityWebhookReconciler) createServiceAccount(ctx context.Conte
 
 	}
 
-	clusterRoleBinding := generateClusterRoleBinding(resource, clusterRole, serviceAccount)
+	clusterRoleBinding := generator.GenerateClusterRoleBinding(resource, clusterRole, serviceAccount)
 	{
 		exists := rbacv1.ClusterRoleBinding{}
 		err := r.Client.Get(ctx, types.NamespacedName{Name: clusterRoleBinding.Name}, &exists)
@@ -305,7 +299,7 @@ func (r *EKSPodIdentityWebhookReconciler) createServiceAccount(ctx context.Conte
 }
 
 func (r *EKSPodIdentityWebhookReconciler) createDaemonset(ctx context.Context, resource *installerv1alpha1.EKSPodIdentityWebhook) (*appsv1.DaemonSet, error) {
-	daemonset := generateDaemonset(resource, resource.Spec.Namespace)
+	daemonset := generator.GenerateDaemonset(resource)
 	if err := r.Client.Create(ctx, daemonset); err != nil {
 		r.Logger.Error(err, "failed to create DaemonSet")
 		return nil, err
@@ -315,7 +309,7 @@ func (r *EKSPodIdentityWebhookReconciler) createDaemonset(ctx context.Context, r
 }
 
 func (r *EKSPodIdentityWebhookReconciler) createService(ctx context.Context, resource *installerv1alpha1.EKSPodIdentityWebhook) (*corev1.Service, error) {
-	service := generateService(resource, resource.Spec.Namespace)
+	service := generator.GenerateService(resource)
 	if err := r.Client.Create(ctx, service); err != nil {
 		r.Logger.Error(err, "Failed to create Service")
 		return nil, err
@@ -342,7 +336,7 @@ func (r *EKSPodIdentityWebhookReconciler) createMutatingWebhookConfiguration(ctx
 	}
 	CA := defaultSAToken.Data["ca.crt"]
 
-	mutating := generateMutatingWebhookConfiguration(resource, service.Namespace, service.Name, CA)
+	mutating := generator.GenerateMutatingWebhookConfiguration(resource, service, CA)
 	if err := r.Client.Create(ctx, mutating); err != nil {
 		r.Logger.Error(err, "Failed to create MutatingWebhookConfiguration")
 		return nil, err

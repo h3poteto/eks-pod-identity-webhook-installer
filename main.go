@@ -32,6 +32,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	installerv1alpha1 "github.com/h3poteto/eks-pod-identity-webhook-installer/api/v1alpha1"
+	"github.com/h3poteto/eks-pod-identity-webhook-installer/pkg/controllers/csr"
 	"github.com/h3poteto/eks-pod-identity-webhook-installer/pkg/controllers/ekspodidentitywebhook"
 	//+kubebuilder:scaffold:imports
 )
@@ -85,6 +86,15 @@ func main() {
 		Recorder: mgr.GetEventRecorderFor("EKSPodIdentityWebhook"),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "EKSPodIdentityWebhook")
+		os.Exit(1)
+	}
+	if err = (&csr.CSRReconciler{
+		Client:   mgr.GetClient(),
+		Scheme:   mgr.GetScheme(),
+		Logger:   ctrl.Log.WithName("controllers").WithName("CSR"),
+		Recorder: mgr.GetEventRecorderFor("CSR"),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "CSR")
 		os.Exit(1)
 	}
 	//+kubebuilder:scaffold:builder

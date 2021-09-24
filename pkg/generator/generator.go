@@ -1,6 +1,6 @@
 // Refs: https://github.com/aws/amazon-eks-pod-identity-webhook/tree/master/deploy
 
-package ekspodidentitywebhook
+package generator
 
 import (
 	installerv1alpha1 "github.com/h3poteto/eks-pod-identity-webhook-installer/api/v1alpha1"
@@ -17,24 +17,26 @@ import (
 
 const (
 	baseName                         = "pod-identity-webhook"
-	serviceAccountName               = baseName
-	serviceName                      = baseName
-	secretName                       = baseName
-	daemonsetName                    = baseName
-	mutatingWebhookconfigurationName = baseName
+	ServiceAccountName               = baseName
+	ServiceName                      = baseName
+	SecretName                       = baseName
+	DaemonsetName                    = baseName
+	MutatingWebhookconfigurationName = baseName
 
 	WebhookServerLabelKey      = "ekspodidentitywebhooks.installer.h3poteto.dev"
 	WebhookServerLabelValuePod = "pod"
 )
 
-func generateMutatingWebhookConfiguration(resource *installerv1alpha1.EKSPodIdentityWebhook, serviceNamespace, serviceName string, serverCertificate []byte) *admissionregistrationv1.MutatingWebhookConfiguration {
+var Namespace string = ""
+
+func GenerateMutatingWebhookConfiguration(resource *installerv1alpha1.EKSPodIdentityWebhook, service *corev1.Service, serverCertificate []byte) *admissionregistrationv1.MutatingWebhookConfiguration {
 	ignore := admissionregistrationv1.Ignore
 	allscopes := admissionregistrationv1.AllScopes
 	equivalent := admissionregistrationv1.Equivalent
 	sideeffect := admissionregistrationv1.SideEffectClassNone
 	return &admissionregistrationv1.MutatingWebhookConfiguration{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: mutatingWebhookconfigurationName,
+			Name: MutatingWebhookconfigurationName,
 			Labels: map[string]string{
 				WebhookServerLabelKey: "webhook-configuration",
 				"kind":                "mutator",
@@ -49,11 +51,11 @@ func generateMutatingWebhookConfiguration(resource *installerv1alpha1.EKSPodIden
 		},
 		Webhooks: []admissionregistrationv1.MutatingWebhook{
 			{
-				Name: serviceName + "." + serviceNamespace + ".svc",
+				Name: service.Name + "." + service.Namespace + ".svc",
 				ClientConfig: admissionregistrationv1.WebhookClientConfig{
 					Service: &admissionregistrationv1.ServiceReference{
-						Namespace: serviceNamespace,
-						Name:      serviceName,
+						Namespace: service.Namespace,
+						Name:      service.Name,
 						Path:      utilpointer.StringPtr("/mutate"),
 					},
 					CABundle: serverCertificate,
@@ -81,11 +83,11 @@ func generateMutatingWebhookConfiguration(resource *installerv1alpha1.EKSPodIden
 	}
 }
 
-func generateService(resource *installerv1alpha1.EKSPodIdentityWebhook, namespace string) *corev1.Service {
+func GenerateService(resource *installerv1alpha1.EKSPodIdentityWebhook) *corev1.Service {
 	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      serviceName,
-			Namespace: namespace,
+			Name:      ServiceName,
+			Namespace: Namespace,
 			OwnerReferences: []metav1.OwnerReference{
 				*metav1.NewControllerRef(resource, schema.GroupVersionKind{
 					Group:   installerv1alpha1.GroupVersion.Group,
@@ -111,11 +113,11 @@ func generateService(resource *installerv1alpha1.EKSPodIdentityWebhook, namespac
 	}
 }
 
-func generateServiceAccount(resource *installerv1alpha1.EKSPodIdentityWebhook, namespace string) *corev1.ServiceAccount {
+func GenerateServiceAccount(resource *installerv1alpha1.EKSPodIdentityWebhook) *corev1.ServiceAccount {
 	return &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      serviceAccountName,
-			Namespace: namespace,
+			Name:      ServiceAccountName,
+			Namespace: Namespace,
 			OwnerReferences: []metav1.OwnerReference{
 				*metav1.NewControllerRef(resource, schema.GroupVersionKind{
 					Group:   installerv1alpha1.GroupVersion.Group,
@@ -127,11 +129,11 @@ func generateServiceAccount(resource *installerv1alpha1.EKSPodIdentityWebhook, n
 	}
 }
 
-func generateRole(resource *installerv1alpha1.EKSPodIdentityWebhook, namespace string) *rbacv1.Role {
+func GenerateRole(resource *installerv1alpha1.EKSPodIdentityWebhook) *rbacv1.Role {
 	return &rbacv1.Role{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      serviceAccountName,
-			Namespace: namespace,
+			Name:      ServiceAccountName,
+			Namespace: Namespace,
 			OwnerReferences: []metav1.OwnerReference{
 				*metav1.NewControllerRef(resource, schema.GroupVersionKind{
 					Group:   installerv1alpha1.GroupVersion.Group,
@@ -150,17 +152,17 @@ func generateRole(resource *installerv1alpha1.EKSPodIdentityWebhook, namespace s
 				Verbs:         []string{"get", "update", "patch"},
 				APIGroups:     []string{""},
 				Resources:     []string{"secrets"},
-				ResourceNames: []string{secretName},
+				ResourceNames: []string{SecretName},
 			},
 		},
 	}
 }
 
-func generateRoleBinding(resource *installerv1alpha1.EKSPodIdentityWebhook, namespace string, role *rbacv1.Role, sa *corev1.ServiceAccount) *rbacv1.RoleBinding {
+func GenerateRoleBinding(resource *installerv1alpha1.EKSPodIdentityWebhook, role *rbacv1.Role, sa *corev1.ServiceAccount) *rbacv1.RoleBinding {
 	return &rbacv1.RoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      serviceAccountName,
-			Namespace: namespace,
+			Name:      ServiceAccountName,
+			Namespace: Namespace,
 			OwnerReferences: []metav1.OwnerReference{
 				*metav1.NewControllerRef(resource, schema.GroupVersionKind{
 					Group:   installerv1alpha1.GroupVersion.Group,
@@ -184,10 +186,10 @@ func generateRoleBinding(resource *installerv1alpha1.EKSPodIdentityWebhook, name
 	}
 }
 
-func generateClusterRole(resource *installerv1alpha1.EKSPodIdentityWebhook) *rbacv1.ClusterRole {
+func GenerateClusterRole(resource *installerv1alpha1.EKSPodIdentityWebhook) *rbacv1.ClusterRole {
 	return &rbacv1.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: serviceAccountName,
+			Name: ServiceAccountName,
 			OwnerReferences: []metav1.OwnerReference{
 				*metav1.NewControllerRef(resource, schema.GroupVersionKind{
 					Group:   installerv1alpha1.GroupVersion.Group,
@@ -211,10 +213,10 @@ func generateClusterRole(resource *installerv1alpha1.EKSPodIdentityWebhook) *rba
 	}
 }
 
-func generateClusterRoleBinding(resource *installerv1alpha1.EKSPodIdentityWebhook, clusterRole *rbacv1.ClusterRole, sa *corev1.ServiceAccount) *rbacv1.ClusterRoleBinding {
+func GenerateClusterRoleBinding(resource *installerv1alpha1.EKSPodIdentityWebhook, clusterRole *rbacv1.ClusterRole, sa *corev1.ServiceAccount) *rbacv1.ClusterRoleBinding {
 	return &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: serviceAccountName,
+			Name: ServiceAccountName,
 			OwnerReferences: []metav1.OwnerReference{
 				*metav1.NewControllerRef(resource, schema.GroupVersionKind{
 					Group:   installerv1alpha1.GroupVersion.Group,
@@ -238,11 +240,11 @@ func generateClusterRoleBinding(resource *installerv1alpha1.EKSPodIdentityWebhoo
 	}
 }
 
-func generateDaemonset(resource *installerv1alpha1.EKSPodIdentityWebhook, namespace string) *appsv1.DaemonSet {
+func GenerateDaemonset(resource *installerv1alpha1.EKSPodIdentityWebhook) *appsv1.DaemonSet {
 	return &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      daemonsetName,
-			Namespace: namespace,
+			Name:      DaemonsetName,
+			Namespace: Namespace,
 			Labels: map[string]string{
 				WebhookServerLabelKey: "eks-webhook-daemonset",
 			},
@@ -277,15 +279,15 @@ func generateDaemonset(resource *installerv1alpha1.EKSPodIdentityWebhook, namesp
 					},
 					Containers: []corev1.Container{
 						{
-							Name:            daemonsetName,
+							Name:            DaemonsetName,
 							Image:           "amazon/amazon-eks-pod-identity-webhook:latest",
 							ImagePullPolicy: corev1.PullAlways,
 							Command: []string{
 								"/webhook",
 								"--in-cluster",
 								"--namespace=" + resource.Spec.Namespace,
-								"--service-name=" + serviceName,
-								"--tls-secret=" + secretName,
+								"--service-name=" + ServiceName,
+								"--tls-secret=" + SecretName,
 								"--annotation-prefix=eks.amazonaws.com",
 								"--token-audience=" + resource.Spec.IssuerHost,
 								"--logtostderr",
@@ -299,7 +301,7 @@ func generateDaemonset(resource *installerv1alpha1.EKSPodIdentityWebhook, namesp
 							},
 						},
 					},
-					ServiceAccountName: serviceAccountName,
+					ServiceAccountName: ServiceAccountName,
 				},
 			},
 		},
