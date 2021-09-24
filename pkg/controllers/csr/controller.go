@@ -13,6 +13,7 @@ import (
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 type CSRReconciler struct {
@@ -27,7 +28,9 @@ type CSRReconciler struct {
 //+kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
 
 func (r *CSRReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	r.Logger.Info("Fetching CertificateSigningRequest resources", "Namespace", req.Namespace, "Name", req.Name)
+	_ = log.FromContext(ctx)
+
+	r.Logger.Info("Fetching CertificateSigningRequest resources", "Name", req.Name)
 	resource := certificatesv1.CertificateSigningRequest{}
 	if err := r.Client.Get(ctx, req.NamespacedName, &resource); err != nil {
 		r.Logger.Info("Failed to get CertificateSigningRequest resources", "error", err)
@@ -35,7 +38,7 @@ func (r *CSRReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 	}
 
 	if err := r.approveCSR(ctx, &resource); err != nil {
-		r.Recorder.Eventf(&resource, corev1.EventTypeWarning, "Error", "Failed to sync: %v", err)
+		r.Logger.Error(err, "Failed to sync CertificateSigningRequest", "Name", req.Name)
 		return ctrl.Result{}, err
 	}
 
@@ -90,9 +93,11 @@ func (r *CSRReconciler) approveCSR(ctx context.Context, resource *certificatesv1
 	_, err = client.CertificatesV1().CertificateSigningRequests().UpdateApproval(ctx, resource.Name, resource, metav1.UpdateOptions{})
 	if err != nil {
 		r.Logger.Error(err, "Failed to update", "CSR", resource.Name)
+		r.Recorder.Eventf(resource, corev1.EventTypeWarning, "ApproveFailed", "Failed to approve CertificateSigningRequest %s", resource.Name)
 		return err
 	}
 	r.Logger.Info("CertificateSigningRequest is approve", "Name", resource.Name)
+	r.Recorder.Eventf(resource, corev1.EventTypeNormal, "Approved", "CertificateSigningRequest %s is approved", resource.Name)
 
 	return nil
 }
