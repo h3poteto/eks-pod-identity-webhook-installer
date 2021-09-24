@@ -22,7 +22,9 @@ type CSRReconciler struct {
 	Recorder record.EventRecorder
 }
 
-// TODO: rbac
+//+kubebuilder:rbac:groups=certificates.k8s.io,resources=certificatesigningrequests,verbs=get;list;watch;update;patch
+//+kubebuilder:rbac:groups=certificates.k8s.io,resources=certificatesigningrequests/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
 
 func (r *CSRReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	r.Logger.Info("Fetching CertificateSigningRequest resources", "Namespace", req.Namespace, "Name", req.Name)

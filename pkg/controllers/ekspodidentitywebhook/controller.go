@@ -49,6 +49,11 @@ type EKSPodIdentityWebhookReconciler struct {
 //+kubebuilder:rbac:groups=installer.h3poteto.dev,resources=ekspodidentitywebhooks,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=installer.h3poteto.dev,resources=ekspodidentitywebhooks/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=installer.h3poteto.dev,resources=ekspodidentitywebhooks/finalizers,verbs=update
+//+kubebuilder:rbac:groups=apps,resources=daemonsets,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=core,resources=services;serviceaccounts,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=roles;rolebindings;clusterroles;clusterrolebindings,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups="admissionregistration.k8s.io",resources=mutatingwebhookconfigurations,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
 
 func (r *EKSPodIdentityWebhookReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = r.Logger.WithValues("EKSPodIdentityWebhook", req.NamespacedName)
