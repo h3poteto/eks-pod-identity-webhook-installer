@@ -56,7 +56,6 @@ type EKSPodIdentityWebhookReconciler struct {
 //+kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
 
 func (r *EKSPodIdentityWebhookReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = r.Logger.WithValues("EKSPodIdentityWebhook", req.NamespacedName)
 	_ = log.FromContext(ctx)
 
 	r.Logger.Info("Fetching EKSPodIdentityWebhook resources", "Namespace", req.Namespace, "Name", req.Name)
@@ -67,7 +66,7 @@ func (r *EKSPodIdentityWebhookReconciler) Reconcile(ctx context.Context, req ctr
 	}
 
 	if err := r.syncEKSPodIdentityWebhook(ctx, &resource); err != nil {
-		r.Recorder.Eventf(&resource, corev1.EventTypeWarning, "Error", "Failed to sync: %v", err)
+		r.Logger.Error(err, "Failed to sync EKSPodIdentityWebhook", "Namespace", req.Namespace, "Name", req.Name)
 		return ctrl.Result{}, err
 	}
 
@@ -198,16 +197,20 @@ func (r *EKSPodIdentityWebhookReconciler) createServiceAccount(ctx context.Conte
 		err := r.Client.Get(ctx, types.NamespacedName{Namespace: serviceAccount.Namespace, Name: serviceAccount.Name}, &exists)
 		if kerrors.IsNotFound(err) {
 			if err := r.Client.Create(ctx, serviceAccount); err != nil {
-				r.Logger.Error(err, "Failed to create ServiceAccount")
+				r.Logger.Error(err, "Failed to create ServiceAccount", "Namespace", serviceAccount.Namespace, "Name", serviceAccount.Name)
+				r.Recorder.Eventf(resource, corev1.EventTypeWarning, "ServiceAccountCreationFailed", "Failed to create %s/%s", serviceAccount.Namespace, serviceAccount.Name)
 				return nil, err
 			}
+			r.Recorder.Eventf(resource, corev1.EventTypeNormal, "ServiceAccountCreated", "Success to create %s/%s", serviceAccount.Namespace, serviceAccount.Name)
 			r.Logger.Info("Success to create ServiceAccount")
 		} else {
 			exists.SetOwnerReferences(serviceAccount.OwnerReferences)
 			if err := r.Client.Update(ctx, &exists); err != nil {
-				r.Logger.Error(err, "Failed to update ServiceAccount")
+				r.Logger.Error(err, "Failed to update ServiceAccount", "Namespace", exists.Namespace, "Name", exists.Name)
+				r.Recorder.Eventf(resource, corev1.EventTypeWarning, "ServiceAccountUpdateFailed", "Failed to update %s/%s", exists.Namespace, exists.Name)
 				return nil, err
 			}
+			r.Recorder.Eventf(resource, corev1.EventTypeNormal, "ServiceAccountUpdated", "Success to update %s/%s", exists.Namespace, exists.Name)
 			r.Logger.Info("Success to update ServiceAccount")
 		}
 	}
@@ -218,18 +221,22 @@ func (r *EKSPodIdentityWebhookReconciler) createServiceAccount(ctx context.Conte
 		err := r.Client.Get(ctx, types.NamespacedName{Namespace: role.Namespace, Name: role.Name}, &exists)
 		if kerrors.IsNotFound(err) {
 			if err := r.Client.Create(ctx, role); err != nil {
-				r.Logger.Error(err, "Failed to create Role")
+				r.Logger.Error(err, "Failed to create Role", "Namespace", role.Namespace, "Name", role.Name)
+				r.Recorder.Eventf(resource, corev1.EventTypeWarning, "RoleCreationFailed", "Failed to create %s/%s", role.Namespace, role.Name)
 				return nil, err
 			}
+			r.Recorder.Eventf(resource, corev1.EventTypeNormal, "RoleCreated", "Success to create %s/%s", role.Namespace, role.Name)
 			r.Logger.Info("Success to create Role")
 		} else {
 			exists.SetOwnerReferences(role.OwnerReferences)
 			exists.Rules = role.Rules
 			if err := r.Client.Update(ctx, &exists); err != nil {
-				r.Logger.Error(err, "Failed to update Role")
+				r.Logger.Error(err, "Failed to update Role", "Namespace", exists.Namespace, "Name", exists.Name)
+				r.Recorder.Eventf(resource, corev1.EventTypeWarning, "RoleUpdateFailed", "Failed to update %s/%s", exists.Namespace, exists.Name)
 				return nil, err
 			}
 			r.Logger.Info("Success to update Role")
+			r.Recorder.Eventf(resource, corev1.EventTypeNormal, "RoleUpdated", "Success to update %s/%s", exists.Namespace, exists.Name)
 		}
 	}
 
@@ -239,19 +246,23 @@ func (r *EKSPodIdentityWebhookReconciler) createServiceAccount(ctx context.Conte
 		err := r.Client.Get(ctx, types.NamespacedName{Namespace: roleBinding.Namespace, Name: roleBinding.Name}, &exists)
 		if kerrors.IsNotFound(err) {
 			if err := r.Client.Create(ctx, roleBinding); err != nil {
-				r.Logger.Error(err, "Failed to create RoleBinding")
+				r.Logger.Error(err, "Failed to create RoleBinding", "Namepsace", roleBinding.Namespace, "Name", roleBinding.Name)
+				r.Recorder.Eventf(resource, corev1.EventTypeWarning, "RoleBindingCreationFailed", "Failed to create %s/%s", roleBinding.Namespace, roleBinding.Name)
 				return nil, err
 			}
+			r.Recorder.Eventf(resource, corev1.EventTypeNormal, "RoleBindingCreated", "Success to create %s/%s", roleBinding.Namespace, roleBinding.Name)
 			r.Logger.Info("Success to create RoleBinding")
 		} else {
 			exists.SetOwnerReferences(roleBinding.OwnerReferences)
 			exists.Subjects = roleBinding.Subjects
 			exists.RoleRef = roleBinding.RoleRef
 			if err := r.Client.Update(ctx, &exists); err != nil {
-				r.Logger.Error(err, "Failed to update RoleBinding")
+				r.Logger.Error(err, "Failed to update RoleBinding", "Namespace", exists.Namespace, "Name", exists.Name)
+				r.Recorder.Eventf(resource, corev1.EventTypeWarning, "RoleBindingUpdateFailed", "Failed to update %s/%s", exists.Namespace, exists.Name)
 				return nil, err
 			}
 			r.Logger.Info("Success to update RoleBinding")
+			r.Recorder.Eventf(resource, corev1.EventTypeNormal, "RoleBindingUpdated", "Success to update %s/%s", exists.Namespace, exists.Name)
 		}
 
 	}
@@ -262,17 +273,21 @@ func (r *EKSPodIdentityWebhookReconciler) createServiceAccount(ctx context.Conte
 		err := r.Client.Get(ctx, types.NamespacedName{Name: clusterRole.Name}, &exists)
 		if kerrors.IsNotFound(err) {
 			if err := r.Client.Create(ctx, clusterRole); err != nil {
-				r.Logger.Error(err, "Failed to create ClusterRole")
+				r.Logger.Error(err, "Failed to create ClusterRole", "Name", clusterRole.Name)
+				r.Recorder.Eventf(resource, corev1.EventTypeWarning, "ClusterRoleCreationFailed", "Failed to create %s", clusterRole.Name)
 				return nil, err
 			}
+			r.Recorder.Eventf(resource, corev1.EventTypeNormal, "ClusterRoleCreated", "Success to create %s", clusterRole.Name)
 			r.Logger.Info("Success to create ClusterRole")
 		} else {
 			exists.SetOwnerReferences(clusterRole.OwnerReferences)
 			exists.Rules = clusterRole.Rules
 			if err := r.Client.Update(ctx, &exists); err != nil {
-				r.Logger.Error(err, "Failed to update ClusterRole")
+				r.Logger.Error(err, "Failed to update ClusterRole", "Name", exists.Name)
+				r.Recorder.Eventf(resource, corev1.EventTypeWarning, "ClusterRoleUpdateFailed", "Failed to update %s", exists.Name)
 				return nil, err
 			}
+			r.Recorder.Eventf(resource, corev1.EventTypeNormal, "ClusterRoleUpdated", "Success to update %s", exists.Name)
 			r.Logger.Info("Success to update ClusterRole")
 		}
 
@@ -284,18 +299,22 @@ func (r *EKSPodIdentityWebhookReconciler) createServiceAccount(ctx context.Conte
 		err := r.Client.Get(ctx, types.NamespacedName{Name: clusterRoleBinding.Name}, &exists)
 		if kerrors.IsNotFound(err) {
 			if err := r.Client.Create(ctx, clusterRoleBinding); err != nil {
-				r.Logger.Error(err, "Failed to create ClusterRoleBinding")
+				r.Logger.Error(err, "Failed to create ClusterRoleBinding", "Name", clusterRoleBinding.Name)
+				r.Recorder.Eventf(resource, corev1.EventTypeWarning, "ClusterRoleBindingCreationFailed", "Failed to create %s", clusterRoleBinding.Name)
 				return nil, err
 			}
+			r.Recorder.Eventf(resource, corev1.EventTypeNormal, "ClusterRoleBindingCreated", "Success to create %s", clusterRoleBinding.Name)
 			r.Logger.Info("Success to create ClusterRoleBinding")
 		} else {
 			exists.SetOwnerReferences(clusterRoleBinding.OwnerReferences)
 			exists.Subjects = clusterRoleBinding.Subjects
 			exists.RoleRef = clusterRoleBinding.RoleRef
 			if err := r.Client.Update(ctx, &exists); err != nil {
-				r.Logger.Error(err, "failed to update ClusterRoleBinding")
+				r.Logger.Error(err, "failed to update ClusterRoleBinding", "Name", exists.Name)
+				r.Recorder.Eventf(resource, corev1.EventTypeWarning, "ClusterRoleBindingUpdateFailed", "Failed to update %s", exists.Name)
 				return nil, err
 			}
+			r.Recorder.Eventf(resource, corev1.EventTypeNormal, "ClusterRoleBindingUpdated", "Success to update %s", exists.Name)
 			r.Logger.Info("Success to update ClusterRoleBinding")
 		}
 
@@ -306,9 +325,11 @@ func (r *EKSPodIdentityWebhookReconciler) createServiceAccount(ctx context.Conte
 func (r *EKSPodIdentityWebhookReconciler) createDaemonset(ctx context.Context, resource *installerv1alpha1.EKSPodIdentityWebhook) (*appsv1.DaemonSet, error) {
 	daemonset := generator.GenerateDaemonset(resource)
 	if err := r.Client.Create(ctx, daemonset); err != nil {
-		r.Logger.Error(err, "failed to create DaemonSet")
+		r.Logger.Error(err, "failed to create DaemonSet", "Namespace", daemonset.Namespace, "Name", daemonset.Name)
+		r.Recorder.Eventf(resource, corev1.EventTypeWarning, "DaemonSetCreationFailed", "Failed to create %s/%s", daemonset.Namespace, daemonset.Name)
 		return nil, err
 	}
+	r.Recorder.Eventf(resource, corev1.EventTypeNormal, "DaemonSetCreated", "Success to create %s/%s", daemonset.Namespace, daemonset.Name)
 	r.Logger.Info("Success to create DaemonSet")
 	return daemonset, nil
 }
@@ -316,9 +337,11 @@ func (r *EKSPodIdentityWebhookReconciler) createDaemonset(ctx context.Context, r
 func (r *EKSPodIdentityWebhookReconciler) createService(ctx context.Context, resource *installerv1alpha1.EKSPodIdentityWebhook) (*corev1.Service, error) {
 	service := generator.GenerateService(resource)
 	if err := r.Client.Create(ctx, service); err != nil {
-		r.Logger.Error(err, "Failed to create Service")
+		r.Logger.Error(err, "Failed to create Service", "Namespace", service.Namespace, "Name", service.Name)
+		r.Recorder.Eventf(resource, corev1.EventTypeWarning, "ServiceCreationFailed", "Failed to create %s/%s", service.Namespace, service.Name)
 		return nil, err
 	}
+	r.Recorder.Eventf(resource, corev1.EventTypeNormal, "ServiceCreated", "Success to create %s/%s", service.Namespace, service.Name)
 	r.Logger.Info("Success to create Service")
 	return service, nil
 }
@@ -332,7 +355,9 @@ func (r *EKSPodIdentityWebhookReconciler) createMutatingWebhookConfiguration(ctx
 		return nil, err
 	}
 	if len(defaultSA.Secrets) != 1 {
-		return nil, fmt.Errorf("%s/%s has invalid secrets", defaultSA.Namespace, defaultSA.Name)
+		err := fmt.Errorf("%s/%s has invalid secrets", defaultSA.Namespace, defaultSA.Name)
+		r.Logger.Error(err, "Service account is invalid")
+		return nil, err
 	}
 	defaultSAToken := corev1.Secret{}
 	if err := r.Client.Get(ctx, types.NamespacedName{Name: defaultSA.Secrets[0].Name, Namespace: resource.Spec.Namespace}, &defaultSAToken); err != nil {
@@ -343,9 +368,11 @@ func (r *EKSPodIdentityWebhookReconciler) createMutatingWebhookConfiguration(ctx
 
 	mutating := generator.GenerateMutatingWebhookConfiguration(resource, service, CA)
 	if err := r.Client.Create(ctx, mutating); err != nil {
-		r.Logger.Error(err, "Failed to create MutatingWebhookConfiguration")
+		r.Logger.Error(err, "Failed to create MutatingWebhookConfiguration", "Name", mutating.Name)
+		r.Recorder.Eventf(resource, corev1.EventTypeWarning, "MutatingWebhookConfigurationCreationFailed", "Failed to create %s", mutating.Name)
 		return nil, err
 	}
+	r.Recorder.Eventf(resource, corev1.EventTypeNormal, "MutatingWebhookConfigurationCreated", "Success to create %s", mutating.Name)
 	r.Logger.Info("Success to create MutatingWebhookConfiguration")
 	return mutating, nil
 }
