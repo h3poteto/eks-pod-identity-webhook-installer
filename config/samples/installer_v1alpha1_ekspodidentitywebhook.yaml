@@ -1,7 +1,7 @@
 apiVersion: installer.h3poteto.dev/v1alpha1
 kind: EKSPodIdentityWebhook
 metadata:
-  name: my-sample
+  name: kops-example
 spec:
-  issuerHost: "hogehoge.com"
+  issuerHost: "amazonaws.com"
   namespace: "default"
