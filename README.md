@@ -16,14 +16,14 @@ $ helm install my-installer --namespace kube-system h3poteto-stable/eks-pod-iden
 Please refer [helm repository](https://github.com/h3poteto/charts/tree/master/stable/eks-pod-identity-webhook-installer) for parameters.
 
 ## How to use it
-You can customize `issuerHost` and `namespace` which are applied for eks-pod-identity-webhook.
-Please change `issuerHost` according to your issuer. And eks-pod-identity-webhook pod runs in `namespace`.
+You can customize `tokenAudience` and `namespace` which are applied for eks-pod-identity-webhook.
+Please change `tokenAudience` according to your audience. And eks-pod-identity-webhook pod runs in `namespace`.
 
 For example,
 
 ```
 $ helm install my-installer --namespace kube-system \
-  --set eksPodIdentityWebhookInstaller.issuerHost=amazonaws.com \
+  --set eksPodIdentityWebhookInstaller.tokenAudience=amazonaws.com \
   --set eksPodIdentityWebhookInstaller.namespace=default
 ```
 

@@ -289,7 +289,7 @@ func GenerateDaemonset(resource *installerv1alpha1.EKSPodIdentityWebhook) *appsv
 								"--service-name=" + ServiceName,
 								"--tls-secret=" + SecretName,
 								"--annotation-prefix=eks.amazonaws.com",
-								"--token-audience=" + resource.Spec.IssuerHost,
+								"--token-audience=" + resource.Spec.TokenAudience,
 								"--logtostderr",
 								"--v=4",
 							},

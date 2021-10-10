@@ -9,7 +9,7 @@ type EKSPodIdentityWebhookSpec struct {
 
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Type:=string
-	IssuerHost string `json:"issuerHost"`
+	TokenAudience string `json:"tokenAudience"`
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Type:=string
 	// +kubebuilder:default=default

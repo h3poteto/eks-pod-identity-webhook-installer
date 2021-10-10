@@ -3,5 +3,5 @@ kind: EKSPodIdentityWebhook
 metadata:
   name: kops-example
 spec:
-  issuerHost: "amazonaws.com"
+  tokenAudience: "amazonaws.com"
   namespace: "default"
