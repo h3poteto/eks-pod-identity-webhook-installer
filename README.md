@@ -5,23 +5,30 @@ This is a controller to install [Amazon EKS Pod Identity Webhook](https://github
 When you are building Kubernetes clusters on AWS by a method other than EKS, you have to install eks-pod-identity-webhook to use IAM Role For Service Account (IRSA). The official repository provides [Makefile](https://github.com/aws/amazon-eks-pod-identity-webhook/blob/master/Makefile). But sometimes you have to rewrite parameters of the deploymente before make command, because we use other audience and issuer for bare metal clusters.
 This controller can automatically install its webhook server without make command. Therefore this repository provides another way to install eks-pod-identity-webhook in your cluster.
 
-## How to use it
-Please apply custom resource, for example:
+## How to install
+You can install this controller using Helm.
 
-```yaml
-apiVersion: installer.h3poteto.dev/v1alpha1
-kind: EKSPodIdentityWebhook
-metadata:
-  name: my-example
-spec:
-  issuerHost: "amazonaws.com"
-  namespace: "default"
+```
+$ helm repo add h3poteto-stable https://h3poteto.github.io/charts/stable
+$ helm install my-installer --namespace kube-system h3poteto-stable/eks-pod-identity-webhook-installer
 ```
 
-After that, pod-identity-webhook pods are deployed, and CertificateSigningRequests are approved.
+Please refer [helm repository](https://github.com/h3poteto/charts/tree/master/stable/eks-pod-identity-webhook-installer) for parameters.
 
-## How to install
-TODO
+## How to use it
+You can customize `issuerHost` and `namespace` which are applied for eks-pod-identity-webhook.
+Please change `issuerHost` according to your issuer. And eks-pod-identity-webhook pod runs in `namespace`.
+
+For example,
+
+```
+$ helm install my-installer --namespace kube-system \
+  --set eksPodIdentityWebhookInstaller.issuerHost=amazonaws.com \
+  --set eksPodIdentityWebhookInstaller.namespace=default
+```
+
+After that, pod-identity-webhook pods are deployed in default namespace, and CertificateSigningRequests are approved.
+
 
 ## License
 The software is available as open source under the terms of the [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0).
